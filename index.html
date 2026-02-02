@@ -200,7 +200,14 @@
                 </p>
               </section>
 
-              <div class="actions decision-actions" aria-label="Operator decision">
+              <!-- Panel decision buttons are intentionally hidden:
+                   during "Detected" state, confirm/reject must be accessible ONLY in the map Action Bar. -->
+              <div
+                id="panelDecisionActions"
+                class="actions decision-actions"
+                aria-label="Operator decision"
+                hidden
+              >
                 <button id="confirmFireBtn" class="btn" type="button">
                   Confirm fire
                 </button>

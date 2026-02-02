@@ -56,6 +56,7 @@ const detectionActionBar = byId("detectionActionBar");
 const actionBarConfidence = byId("actionBarConfidence");
 const actionConfirmBtn = byId("actionConfirmBtn");
 const actionRejectBtn = byId("actionRejectBtn");
+const panelDecisionActions = byId("panelDecisionActions");
 
 // ===== Map setup =============================================================
 
@@ -179,8 +180,10 @@ function hideDetectionCard() {
   incidentDetails.hidden = true;
   impactAssessment.hidden = true;
   exportIncidentBtn.disabled = true;
-  confirmFireBtn.disabled = false;
-  rejectDetectionBtn.disabled = false;
+  // Panel decision buttons are not used (Action Bar is the operational interface).
+  panelDecisionActions.hidden = true;
+  confirmFireBtn.disabled = true;
+  rejectDetectionBtn.disabled = true;
   detectionCard.classList.remove("confirmed", "rejected");
   currentDetection = null;
   lastImpactAssessment = null;
@@ -191,6 +194,11 @@ function showActionBar(confidencePct) {
   // Operational UX: the most critical actions must be available without scrolling.
   detectionActionBar.hidden = false;
   actionBarConfidence.textContent = `Confidence ${confidencePct}%`;
+
+  // Ensure there is no duplicate confirm/reject UI in the panel during "Detected" state.
+  panelDecisionActions.hidden = true;
+  confirmFireBtn.disabled = true;
+  rejectDetectionBtn.disabled = true;
 }
 
 function hideActionBar() {
@@ -473,8 +481,9 @@ function showDetectionResult({ confidencePct, when, location }) {
   detectionTime.textContent = when;
   detectionCard.hidden = false;
   incidentDetails.hidden = true;
-  confirmFireBtn.disabled = false;
-  rejectDetectionBtn.disabled = false;
+  panelDecisionActions.hidden = true;
+  confirmFireBtn.disabled = true;
+  rejectDetectionBtn.disabled = true;
   detectionCard.classList.remove("confirmed", "rejected");
   detectionDispositionTag.textContent = "Detected";
   detectionDispositionTag.className = "tag tag-warning";
@@ -492,6 +501,10 @@ function showDetectionResult({ confidencePct, when, location }) {
   showActionBar(confidencePct);
 }
 
+// Leaflet sizing: when using a fixed-height layout, ensure the map recalculates size.
+requestAnimationFrame(() => map.invalidateSize());
+window.addEventListener("resize", () => map.invalidateSize());
+
 /*
   Human-in-the-loop confirmation
   ------------------------------
@@ -500,7 +513,7 @@ function showDetectionResult({ confidencePct, when, location }) {
   This provides accountability, reduces false alarms, and supports auditability.
 */
 
-confirmFireBtn.addEventListener("click", () => {
+function confirmDetection() {
   if (!currentDetection || currentDetection.state !== "unconfirmed") return;
 
   // Once the operator makes a decision, hide the action bar (normal flow resumes).
@@ -571,9 +584,9 @@ confirmFireBtn.addEventListener("click", () => {
   renderIncidentList();
   setIncidentControls(incident);
   focusIncidentOnMap(incident);
-});
+}
 
-rejectDetectionBtn.addEventListener("click", () => {
+function rejectDetection() {
   if (!currentDetection || currentDetection.state !== "unconfirmed") return;
 
   // Once the operator makes a decision, hide the action bar (normal flow resumes).
@@ -600,12 +613,15 @@ rejectDetectionBtn.addEventListener("click", () => {
   lastImpactAssessment = null;
   // Allow the operator to run detection again without changing the selected bounds.
   setControlsDisabled(false);
-});
+}
 
-// Action bar buttons reuse the existing confirm/reject logic.
-// This keeps behavior consistent across the UI while making the critical actions accessible.
-actionConfirmBtn.addEventListener("click", () => confirmFireBtn.click());
-actionRejectBtn.addEventListener("click", () => rejectDetectionBtn.click());
+// Action Bar is the primary operational interface for the "Detected" state.
+actionConfirmBtn.addEventListener("click", confirmDetection);
+actionRejectBtn.addEventListener("click", rejectDetection);
+
+// Panel buttons remain in the DOM (accessibility / fallback), but are hidden/disabled in this MVP.
+confirmFireBtn.addEventListener("click", confirmDetection);
+rejectDetectionBtn.addEventListener("click", rejectDetection);
 
 runDetectionBtn.addEventListener("click", async () => {
   if (!selectedBounds) {
