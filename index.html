@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aegis Detect — Wildfire Detection &amp; Confirmation System</title>
+    <meta
+      name="description"
+      content="Aegis Detect MVP demo: a government-facing wildfire detection system with human-in-the-loop confirmation."
+    />
+
+    <link rel="stylesheet" href="styles.css" />
+
+    <!-- Leaflet (map) via CDN. -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header" role="banner">
+      <div class="container header-inner">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">A</div>
+          <div class="brand-text">
+            <h1 class="brand-title">Aegis Detect</h1>
+            <p class="brand-subtitle">Wildfire Detection &amp; Confirmation System</p>
+          </div>
+        </div>
+
+        <div class="header-meta" aria-label="Demo status">
+          <span class="pill">MVP Demo</span>
+          <span class="pill pill-muted">No backend</span>
+          <span class="pill pill-muted">Human-in-the-loop</span>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="container app" role="main">
+      <section class="layout" aria-label="Detection workspace">
+        <div class="map-shell" aria-label="Map">
+          <div class="map-toolbar" aria-label="Map tools">
+            <button id="selectAreaBtn" class="btn btn-secondary" type="button">
+              Select Area
+            </button>
+            <button id="clearSelectionBtn" class="btn btn-secondary" type="button" disabled>
+              Clear Selection
+            </button>
+            <div class="toolbar-spacer" aria-hidden="true"></div>
+            <div class="hint-inline" id="mapHint" aria-live="polite">
+              Tip: Zoom and pan to your area of interest.
+            </div>
+          </div>
+
+          <div id="detectMap" class="map" role="application" aria-label="Wildfire detection map"></div>
+
+          <div class="map-legend" aria-label="Map legend">
+            <span class="legend-item">
+              <span class="legend-swatch selection" aria-hidden="true"></span>
+              Selected area
+            </span>
+          </div>
+        </div>
+
+        <aside class="panel" aria-label="Detection Panel">
+          <div class="panel-header">
+            <h2 class="panel-title">Detection Panel</h2>
+            <p class="panel-subtitle">Review area selection and run a demo analysis.</p>
+          </div>
+
+          <div class="panel-body">
+            <div class="status-row" aria-label="Detection status">
+              <div class="status-label">Status</div>
+              <div class="status-value" id="statusValue" aria-live="polite">
+                <span class="status-dot idle" aria-hidden="true"></span>
+                <span id="statusText">Idle</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">Instructions</div>
+              <p class="muted" id="instructionText">
+                Select an area on the map to begin detection.
+              </p>
+            </div>
+
+            <div class="card">
+              <div class="card-title">Selected Area</div>
+              <p class="muted small" id="selectionSummary">No area selected.</p>
+            </div>
+
+            <div class="actions">
+              <button id="runDetectionBtn" class="btn" type="button" disabled>
+                Run Detection
+              </button>
+            </div>
+
+            <!-- Detection result (demo-only). Hidden until a run completes. -->
+            <section
+              id="detectionCard"
+              class="card detection-card"
+              aria-label="Detection result"
+              aria-live="polite"
+              hidden
+            >
+              <div class="detection-top">
+                <div>
+                  <div class="card-title">Potential wildfire detected</div>
+                  <p class="muted small">
+                    <span id="detectionDispositionTag" class="tag tag-warning">Unconfirmed</span>
+                    <span class="tag tag-muted">AI detection</span>
+                    <span class="tag tag-human">Operator decision required</span>
+                  </p>
+                </div>
+                <div class="detection-metrics" aria-label="Detection metrics">
+                  <div class="metric">
+                    <div class="metric-label">Confidence</div>
+                    <div class="metric-value" id="detectionConfidence">—</div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-label">Timestamp</div>
+                    <div class="metric-value" id="detectionTime">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="evidence" aria-label="Satellite evidence preview">
+                <img
+                  id="evidenceImg"
+                  class="evidence-img"
+                  alt="Satellite evidence preview (placeholder)"
+                  src="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27640%27%20height%3D%27360%27%20viewBox%3D%270%200%20640%20360%27%3E%3Cdefs%3E%3CradialGradient%20id%3D%27g%27%20cx%3D%2730%25%27%20cy%3D%2735%25%27%20r%3D%2785%25%27%3E%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%231a2b52%27/%3E%3Cstop%20offset%3D%2760%25%27%20stop-color%3D%27%230f1a2e%27/%3E%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%230b1220%27/%3E%3C/radialGradient%3E%3ClinearGradient%20id%3D%27h%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%237dd3fc%27%20stop-opacity%3D%270.18%27/%3E%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%2360a5fa%27%20stop-opacity%3D%270.08%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27640%27%20height%3D%27360%27%20fill%3D%27url(%23g)%27/%3E%3Crect%20x%3D%2720%27%20y%3D%2720%27%20width%3D%27600%27%20height%3D%27320%27%20rx%3D%2718%27%20fill%3D%27url(%23h)%27%20stroke%3D%27rgba(255%2C255%2C255%2C0.18)%27/%3E%3Cpath%20d%3D%27M70%20265%20C165%20190%2C%20230%20295%2C%20335%20210%20S%20510%20280%2C%20585%20220%27%20stroke%3D%27rgba(255%2C255%2C255%2C0.22)%27%20stroke-width%3D%272%27%20fill%3D%27none%27/%3E%3Ccircle%20cx%3D%27430%27%20cy%3D%27170%27%20r%3D%2742%27%20fill%3D%27rgba(248%2C113%2C113%2C0.18)%27%20stroke%3D%27rgba(248%2C113%2C113%2C0.55)%27%20stroke-width%3D%272%27/%3E%3Cpath%20d%3D%27M430%20145%20c10%2014%208%2022%200%2028%20c-8%206-10%2016%200%2022%20c16%2010%2032-2%2032-18%20c0-12-10-18-12-32%20c-2-14%202-18-20%200z%27%20fill%3D%27rgba(248%2C113%2C113%2C0.55)%27/%3E%3Ctext%20x%3D%2750%27%20y%3D%2760%27%20fill%3D%27rgba(255%2C255%2C255%2C0.75)%27%20font-family%3D%27ui-sans-serif%2C%20system-ui%2C%20-apple-system%2C%20Segoe%20UI%2C%20Roboto%2C%20Helvetica%2C%20Arial%27%20font-size%3D%2716%27%3ESatellite%20evidence%20preview%20(placeholder)%3C/text%3E%3Ctext%20x%3D%2750%27%20y%3D%2784%27%20fill%3D%27rgba(255%2C255%2C255%2C0.55)%27%20font-family%3D%27ui-sans-serif%2C%20system-ui%2C%20-apple-system%2C%20Segoe%20UI%2C%20Roboto%2C%20Helvetica%2C%20Arial%27%20font-size%3D%2712%27%3EDemo-only%20%E2%80%94%20replace%20with%20real%20imagery%20in%20production%3C/text%3E%3C/svg%3E"
+                />
+              </div>
+
+              <p class="muted small detection-label" id="detectionLabel">
+                AI detection — human confirmation required. This is not yet a confirmed incident.
+              </p>
+
+              <div id="incidentDetails" class="incident-details" hidden>
+                <p class="muted small"><strong>Incident status:</strong> Active</p>
+                <p class="muted small"><strong>Confirmed by operator</strong></p>
+              </div>
+
+              <section id="impactAssessment" class="impact" aria-label="Impact Assessment" hidden>
+                <div class="impact-header">
+                  <div class="impact-title">Impact Assessment</div>
+                  <span id="impactRiskPill" class="risk-pill medium">Medium</span>
+                </div>
+                <div class="impact-grid" aria-label="Impact assessment metrics">
+                  <div class="impact-item">
+                    <div class="impact-label">Estimated spread risk</div>
+                    <div class="impact-value" id="impactRiskText">—</div>
+                  </div>
+                  <div class="impact-item">
+                    <div class="impact-label">Approx. affected area</div>
+                    <div class="impact-value" id="impactAreaText">—</div>
+                  </div>
+                </div>
+                <p class="muted small" id="impactNotes">
+                  —
+                </p>
+                <p class="muted small impact-disclaimer">
+                  Illustrative only. This is a placeholder for future AI/modeling integration; no real prediction is being performed.
+                </p>
+              </section>
+
+              <div class="actions decision-actions" aria-label="Operator decision">
+                <button id="confirmFireBtn" class="btn" type="button">
+                  Confirm fire
+                </button>
+                <button id="rejectDetectionBtn" class="btn btn-secondary" type="button">
+                  Reject detection
+                </button>
+              </div>
+            </section>
+
+            <div class="card" aria-label="Active Incidents">
+              <div class="card-title">Active Incidents</div>
+              <p id="incidentEmpty" class="muted small">No confirmed incidents yet.</p>
+              <ul id="incidentList" class="incident-list" hidden></ul>
+            </div>
+
+            <div id="incidentControls" class="card" aria-label="Incident Controls" hidden>
+              <div class="card-title">Incident</div>
+              <p class="muted small" id="incidentFocusLabel">—</p>
+
+              <div class="field">
+                <label class="field-label" for="incidentStatusSelect">Lifecycle status</label>
+                <select id="incidentStatusSelect">
+                  <option value="Confirmed — Awaiting response">Confirmed — Awaiting response</option>
+                  <option value="Confirmed — Response dispatched">Confirmed — Response dispatched</option>
+                  <option value="Resolved">Resolved</option>
+                </select>
+                <p class="hint muted small">
+                  This models an incident lifecycle for operational awareness (not a task management system).
+                </p>
+              </div>
+
+              <div class="actions" aria-label="Reporting">
+                <button id="exportIncidentBtn" class="btn btn-secondary" type="button" disabled>
+                  Export Incident Report
+                </button>
+              </div>
+            </div>
+
+            <div class="note muted small">
+              This is a foundation MVP. It simulates analysis timing only—no detection results are shown yet.
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <!-- Leaflet must load before script.js (both are deferred, order is preserved). -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+      defer
+    ></script>
+    <script src="script.js" defer></script>
+  </body>
+</html>
