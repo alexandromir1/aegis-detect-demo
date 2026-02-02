@@ -58,6 +58,37 @@
 
           <div id="detectMap" class="map" role="application" aria-label="Wildfire detection map"></div>
 
+          <!--
+            Detection Action Bar (operational UX)
+            - Appears only when an AI detection requires an operator decision.
+            - Positioned over the map so confirm/reject requires NO scrolling.
+          -->
+          <section
+            id="detectionActionBar"
+            class="action-bar"
+            aria-label="Detection actions"
+            aria-live="polite"
+            hidden
+          >
+            <div class="action-bar-left">
+              <div class="action-bar-alert">Potential wildfire detected</div>
+              <div class="action-bar-meta">
+                <span class="meta-pill">AI</span>
+                <span class="meta-pill meta-pill-muted">Operator decision required</span>
+                <span id="actionBarConfidence" class="meta-pill meta-pill-danger">Confidence —</span>
+              </div>
+            </div>
+
+            <div class="action-bar-actions" aria-label="Primary actions">
+              <button id="actionConfirmBtn" class="btn" type="button" aria-keyshortcuts="C">
+                Confirm fire
+              </button>
+              <button id="actionRejectBtn" class="btn btn-secondary" type="button" aria-keyshortcuts="R">
+                Reject
+              </button>
+            </div>
+          </section>
+
           <div class="map-legend" aria-label="Map legend">
             <span class="legend-item">
               <span class="legend-swatch selection" aria-hidden="true"></span>

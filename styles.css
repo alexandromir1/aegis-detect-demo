@@ -154,6 +154,7 @@ body {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   overflow: hidden;
+  position: relative; /* enables map overlays (legend/action bar) */
   display: flex;
   flex-direction: column;
   min-height: 60vh;
@@ -225,6 +226,78 @@ body {
   display: inline-flex;
   gap: 10px;
   box-shadow: var(--shadow);
+}
+
+/* Detection Action Bar (fixed over map, no scrolling required) */
+.action-bar {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 750;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  background: rgba(11, 18, 32, 0.72);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+
+.action-bar-left {
+  min-width: 0;
+}
+
+.action-bar-alert {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.94);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 52ch;
+}
+
+.action-bar-meta {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.86);
+  white-space: nowrap;
+}
+
+.meta-pill-muted {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.meta-pill-danger {
+  border-color: rgba(248, 113, 113, 0.42);
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.action-bar-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Ensure Leaflet attribution stays visible above the bar on small screens */
+.leaflet-bottom.leaflet-right {
+  margin-bottom: 54px;
 }
 
 .legend-item {
@@ -774,6 +847,22 @@ body.selecting .leaflet-container {
 
   .hint-inline {
     display: none;
+  }
+
+  .action-bar {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .action-bar-actions {
+    width: 100%;
+  }
+
+  .action-bar-actions .btn {
+    flex: 1;
   }
 }
 

@@ -52,6 +52,10 @@ const incidentList = byId("incidentList");
 const incidentControls = byId("incidentControls");
 const incidentFocusLabel = byId("incidentFocusLabel");
 const incidentStatusSelect = byId("incidentStatusSelect");
+const detectionActionBar = byId("detectionActionBar");
+const actionBarConfidence = byId("actionBarConfidence");
+const actionConfirmBtn = byId("actionConfirmBtn");
+const actionRejectBtn = byId("actionRejectBtn");
 
 // ===== Map setup =============================================================
 
@@ -180,7 +184,53 @@ function hideDetectionCard() {
   detectionCard.classList.remove("confirmed", "rejected");
   currentDetection = null;
   lastImpactAssessment = null;
+  hideActionBar();
 }
+
+function showActionBar(confidencePct) {
+  // Operational UX: the most critical actions must be available without scrolling.
+  detectionActionBar.hidden = false;
+  actionBarConfidence.textContent = `Confidence ${confidencePct}%`;
+}
+
+function hideActionBar() {
+  detectionActionBar.hidden = true;
+  actionBarConfidence.textContent = "Confidence —";
+}
+
+function isEditableTarget(target) {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName.toLowerCase();
+  return (
+    tag === "input" ||
+    tag === "textarea" ||
+    tag === "select" ||
+    target.isContentEditable === true
+  );
+}
+
+// Hotkeys (operational UX): when a detection requires a decision, allow fast actions.
+// - C = Confirm fire
+// - R = Reject detection
+// Notes:
+// - Only active when the action bar is visible AND the detection is unconfirmed.
+// - Ignored while typing in form controls to avoid accidental actions.
+document.addEventListener("keydown", (e) => {
+  if (e.defaultPrevented) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (isEditableTarget(e.target)) return;
+  if (detectionActionBar.hidden) return;
+  if (!currentDetection || currentDetection.state !== "unconfirmed") return;
+
+  const key = e.key.toLowerCase();
+  if (key === "c") {
+    e.preventDefault();
+    actionConfirmBtn.click();
+  } else if (key === "r") {
+    e.preventDefault();
+    actionRejectBtn.click();
+  }
+});
 
 function formatLatLng(latlng) {
   return `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
@@ -274,6 +324,7 @@ function clearSelection() {
   clearDetectionOnMap();
   clearImpactZone();
   hideDetectionCard();
+  hideActionBar();
   focusedIncidentId = null;
   renderIncidentList();
   setIncidentControls(null);
@@ -436,6 +487,9 @@ function showDetectionResult({ confidencePct, when, location }) {
     keyboard: false,
     title: "Potential wildfire detected (unconfirmed)",
   }).addTo(map);
+
+  // Show the no-scroll action bar immediately after detection.
+  showActionBar(confidencePct);
 }
 
 /*
@@ -448,6 +502,9 @@ function showDetectionResult({ confidencePct, when, location }) {
 
 confirmFireBtn.addEventListener("click", () => {
   if (!currentDetection || currentDetection.state !== "unconfirmed") return;
+
+  // Once the operator makes a decision, hide the action bar (normal flow resumes).
+  hideActionBar();
 
   // Human confirmation overrides AI output:
   // - The AI suggested a detection
@@ -519,6 +576,9 @@ confirmFireBtn.addEventListener("click", () => {
 rejectDetectionBtn.addEventListener("click", () => {
   if (!currentDetection || currentDetection.state !== "unconfirmed") return;
 
+  // Once the operator makes a decision, hide the action bar (normal flow resumes).
+  hideActionBar();
+
   // Human rejection overrides AI output:
   // - The AI suggested a detection
   // - The operator can reject it as a false positive
@@ -542,6 +602,11 @@ rejectDetectionBtn.addEventListener("click", () => {
   setControlsDisabled(false);
 });
 
+// Action bar buttons reuse the existing confirm/reject logic.
+// This keeps behavior consistent across the UI while making the critical actions accessible.
+actionConfirmBtn.addEventListener("click", () => confirmFireBtn.click());
+actionRejectBtn.addEventListener("click", () => rejectDetectionBtn.click());
+
 runDetectionBtn.addEventListener("click", async () => {
   if (!selectedBounds) {
     setInstruction("Select an area on the map to begin detection.");
@@ -552,6 +617,7 @@ runDetectionBtn.addEventListener("click", async () => {
   setStatus("busy", "Analyzing satellite imagery…");
   setInstruction("Analysis in progress. Please wait.");
   hideDetectionCard();
+  hideActionBar();
   clearDetectionOnMap();
   clearImpactZone();
 
